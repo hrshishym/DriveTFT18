@@ -1,0 +1,17 @@
+NET "clk" LOC = "p122";
+NET "rstn" LOC = "p18";
+
+NET "SCL" LOC = "p25";
+NET "SDA" LOC = "p26";
+NET "WRX" LOC = "p29";
+NET "RESX" LOC = "p32";
+NET "CSX" LOC = "p33";
+NET "UART_TX" LOC = "p34";
+
+NET "LED<0>" LOC = "p142";
+NET "LED<1>" LOC = "p43";
+NET "LED<2>" LOC = "p2";
+NET "LED<3>" LOC = "p3";
+NET "LED<4>" LOC = "p4";
+NET "LED<5>" LOC = "p5";
+NET "LED<6>" LOC = "p7";

@@ -84,10 +84,23 @@ module sim_spi(
     dcx <= 1'b0;
     wdata <= 8'b11001010;
     
+    repeat(20) @(posedge clk);
+    wait(ack == 1'b1);
+
+    #100;
+
+    req <= 1'b0;
     repeat(10) @(posedge clk);
-    fork
-      wait(ack == 1'b1);
-    join
+
+    // ‘‚«ž‚Ý (Command)
+    mod_sel <= 1'b1;
+    req <= 1'b1;
+    rw  <= 1'b0;
+    dcx <= 1'b0;
+    wdata <= 8'ha5;
+    
+    repeat(20) @(posedge clk);
+    wait(ack == 1'b1);
 
     #100;
 
@@ -99,12 +112,10 @@ module sim_spi(
     req <= 1'b1;
     rw  <= 1'b0;
     dcx <= 1'b1;
-    wdata <= 8'b11001010;
+    wdata <= 8'b11101100;
     
-    repeat(10) @(posedge clk);
-    fork
-      wait(ack == 1'b1);
-    join
+    repeat(20) @(posedge clk);
+    wait(ack == 1'b1);
 
     #100;
 
@@ -116,13 +127,11 @@ module sim_spi(
     mod_sel <= 1'b1;
     req <= 1'b1;
     rw  <= 1'b1;
-    dcx <= 1'b1;
+    dcx <= 1'b0;
     wdata <= 8'b00110101;
     
     repeat(10) @(posedge clk);
-    repeat(8 * 8) @(posedge clk);
-    repeat(8 * 8) @(posedge clk);
-    repeat(8 * 1) @(posedge clk);
+    wait(ack == 1'b1);
 
     req <= 1'b0;
     repeat(10) @(posedge clk);
@@ -131,18 +140,16 @@ module sim_spi(
     read_data = 'h12345678;
     mod_sel <= 1'b1;
     rw  <= 1'b1;
-    dcx <= 1'b1;
+    dcx <= 1'b0;
     readsize <= 2'b11;  // 32bit
     wdata <= 8'b10100011;
     req <= 1'b1;
     
     repeat(10) @(posedge clk);
-    repeat(8 * 8) @(posedge clk);
-    repeat(32 * 8) @(posedge clk);
-    repeat(8 * 1) @(posedge clk);
+    wait(ack == 1'b1);
 
     req <= 1'b0;
-    repeat(10) @(posedge clk);
+    repeat(8 * 10) @(posedge clk);
 
     #100;
     $finish;
@@ -155,10 +162,10 @@ module sim_spi(
   end
   wire req_pe = ~req_1d & req;
   always @(negedge oSCL or posedge req) begin
-    if(rsth)                         read_pos = 6'b11_1111;
-    else if(rw & req_pe)             read_pos = readsize * 8 + 8;
-    else if(read_pos == 6'b11_1111)  read_pos = -1;
-    else if(oCSX)                    read_pos = read_pos - 1;
+    if(rsth)                        read_pos = 6'b11_1111;
+    else if(rw & req_pe)            read_pos = readsize * 8 + 8;
+    else if(read_pos == 6'b11_1111) read_pos = -1;
+    else if(oCSX)                   read_pos = read_pos - 1;
   end
 
   always @(negedge oSCL) begin

@@ -1,7 +1,7 @@
 module sim_wait_timer();
 
   reg         clk;
-  reg         rstn;     // H:reset
+  reg         rsth;     // H:reset
   reg         mod_sel;
   reg         req;
   reg [7:0]   w_wdata;
@@ -10,7 +10,7 @@ module sim_wait_timer();
 
   timer_wait uut (
     .clk(clk),
-    .rstn(rstn),
+    .rsth(rsth),
     .mod_sel(mod_sel),
     .req(req),
     .w_wdata(w_wdata),
@@ -21,13 +21,13 @@ module sim_wait_timer();
 
   initial begin
     clk = 0;
-    rstn = 0;
+    rsth = 1;
     mod_sel = 0;
     req = 0;
     w_wdata = 0;
 
     repeat(10) @(posedge clk);
-    rstn = 1;
+    rsth = 0;
     repeat(10) @(posedge clk);
 
     // 10ms ‘Ò‚Â

@@ -1,5 +1,5 @@
 NET "clk" LOC = "p122";
-NET "rstn" LOC = "p18";
+NET "rsth" LOC = "p18";
 
 NET "SCL" LOC = "p25";
 NET "SDA" LOC = "p26";
@@ -15,3 +15,9 @@ NET "LED<3>" LOC = "p3";
 NET "LED<4>" LOC = "p4";
 NET "LED<5>" LOC = "p5";
 NET "LED<6>" LOC = "p7";
+
+# timin
+NET "clk" TNM_NET = "CLK";
+TIMESPEC TS_CLK = PERIOD "CLK" 50000 kHz;
+
+

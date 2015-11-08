@@ -1,7 +1,7 @@
 `timescale 1ns / 1ns
 module DriveTFT18(
   input wire clk,
-  input wire rstn,
+  input wire rsth,
   output wire SCL,
   output wire WRX,
   output wire RESX,
@@ -32,9 +32,9 @@ module DriveTFT18(
 
   mcs mcs_0 (
     .Clk(clk), // input Clk
-    .Reset(rstn), // input Reset
+    .Reset(rsth), // input Reset
     .UART_Tx(UART_TX), // output UART_Tx
-    .GPO1({w_mod_sel, w_req, w_readsize, w_dcx, w_rw, w_wdata[7:0]}), // output [12 : 0] GPO1
+    .GPO1({w_mod_sel, w_req, w_readsize, w_dcx, w_rw, w_wdata[7:0]}), // output [14 : 0] GPO1
     .GPI1(w_ack_all), // input [0 : 0] GPI1
     .GPI1_Interrupt(), // output GPI1_Interrupt
     .GPI2(w_rdata), // input [31 : 0] GPI2
@@ -44,7 +44,7 @@ module DriveTFT18(
   // SPI
   spi spi (
     .clk(clk),
-    .rsth(~rstn),
+    .rsth(rsth),
     .mod_sel(w_sel_spi),
     .req(w_req),
     .rw(w_rw),
@@ -62,13 +62,14 @@ module DriveTFT18(
   // TFT ƒŠƒZƒbƒg
   reg r_rstn;
   always @(posedge clk) begin
+    if(rsth)          r_rstn <= 1'b0;
     if(w_sel_tft_rst) r_rstn <= w_wdata[0];
   end
 
   // wait
   timer_wait timer_wait (
     .clk(clk),
-    .rstn(rstn),
+    .rsth(rsth),
     .mod_sel(w_sel_timer),
     .req(w_req),
     .w_wdata(w_wdata),
@@ -77,8 +78,16 @@ module DriveTFT18(
 
   assign RESX = r_rstn;
 
-  assign LED[6:1] = {w_mod_sel[1:0], w_req, w_sel_spi, w_sel_tft_rst, w_sel_timer};
-  assign LED[0]   = RESX;
+  assign LED[6]   = SCL;
+  assign LED[5]   = WRX;
+  assign LED[4]   = CSX;
+  assign LED[3]   = SDA;
+  assign LED[2]   = w_req;
+  assign LED[1]   = w_ack_spi;
+  assign LED[0]   = w_ack_wait;
+
+//assign LED[6:1] = {w_mod_sel[1:0], w_req, w_sel_spi, w_sel_tft_rst, w_sel_timer};
+//assign LED[0]   = RESX;
 
 endmodule
 

@@ -26,12 +26,10 @@ module sim_spi(
   reg         clk;
   reg         rsth;     // H:reset
   // MCSからの入力
-  reg         req;      // H:request
-  reg         rw;       // H:read L:write
-  reg         dcx;      // H:data  L:command
-  reg [7:0]   wdata;    // 
-  reg [1:0]   readsize; // 
   reg         mod_sel;  // 
+  reg         req;      // H:request
+  reg [3:0]   command;  // 
+  reg [17:0]  wdata;    // 
   // MCSへの出力
   wire [31:0]  rdata;   // 
   wire         ack;     // H:ack
@@ -50,10 +48,8 @@ module sim_spi(
     .rsth(rsth),
     .mod_sel(mod_sel),
     .req(req),
-    .rw(rw),
-    .dcx(dcx),
+    .command(command),
     .wdata(wdata),
-    .readsize(readsize),
     .rdata(rdata),
     .ack(ack),
     .oSCL(oSCL),
@@ -64,25 +60,25 @@ module sim_spi(
 
   always #10 clk = ~clk;
 
+
+  integer testnum = 0;
   initial begin
-    clk  = 0;
-    rsth = 1;
-    mod_sel = 0;
-    req  = 0;
-    rw   = 0;
-    dcx  = 0;
-    wdata = 0;
-    readsize = 0;
+    clk       = 0;
+    rsth      = 1;
+    mod_sel   = 0;
+    req       = 0;
+    command   = 0;
+    wdata     = 0;
     repeat (10) @(posedge clk);
     rsth = 0;
     repeat (10) @(posedge clk);
 
     // 書き込み (Command)
+    testnum = 1;
     mod_sel <= 1'b1;
     req <= 1'b1;
-    rw  <= 1'b0;
-    dcx <= 1'b0;
-    wdata <= 8'b11001010;
+    command  <= 4'b0000;
+    wdata <= 18'b11001010;
     
     repeat(20) @(posedge clk);
     wait(ack == 1'b1);
@@ -93,10 +89,10 @@ module sim_spi(
     repeat(10) @(posedge clk);
 
     // 書き込み (Command)
+    testnum = 2;
     mod_sel <= 1'b1;
     req <= 1'b1;
-    rw  <= 1'b0;
-    dcx <= 1'b0;
+    command <= 4'b0000;
     wdata <= 8'ha5;
     
     repeat(20) @(posedge clk);
@@ -108,10 +104,10 @@ module sim_spi(
     repeat(10) @(posedge clk);
 
     // 書き込み (Data)
+    testnum = 3;
     mod_sel <= 1'b1;
     req <= 1'b1;
-    rw  <= 1'b0;
-    dcx <= 1'b1;
+    command <= 4'b0001;
     wdata <= 8'b11101100;
     
     repeat(20) @(posedge clk);
@@ -122,12 +118,12 @@ module sim_spi(
     req <= 1'b0;
     repeat(10) @(posedge clk);
 
-    // 読み出し
+    // 読み出し 8bit
+    testnum = 4;
     read_data = 'h12;
     mod_sel <= 1'b1;
     req <= 1'b1;
-    rw  <= 1'b1;
-    dcx <= 1'b0;
+    command <= 4'b0100;
     wdata <= 8'b00110101;
     
     repeat(10) @(posedge clk);
@@ -136,12 +132,11 @@ module sim_spi(
     req <= 1'b0;
     repeat(10) @(posedge clk);
 
-    // 読み出し
+    // 読み出し 32bit
+    testnum = 5;
     read_data = 'h12345678;
     mod_sel <= 1'b1;
-    rw  <= 1'b1;
-    dcx <= 1'b0;
-    readsize <= 2'b11;  // 32bit
+    command <= 4'b0111;
     wdata <= 8'b10100011;
     req <= 1'b1;
     
@@ -150,6 +145,48 @@ module sim_spi(
 
     req <= 1'b0;
     repeat(8 * 10) @(posedge clk);
+
+    // 画素書き出しはじめ
+    testnum = 6;
+    mod_sel <= 1'b1;
+    command <= 4'b1000;
+    req <= 1'b1;
+    repeat(100) @(posedge clk);
+    req <= 1'b0;
+    
+    repeat(10) @(posedge clk);
+
+    // 画素書き出し
+    testnum = 7;
+    mod_sel <= 1'b1;
+    command <= 4'b1001;
+    wdata   <= (6'b101010 << 12 ) | (6'b111000 << 6) | (6'b001101);
+    req <= 1'b1;
+    repeat(10) @(posedge clk);
+    req <= 1'b0;
+    wait(ack == 1'b1);
+    req <= 1'b0;
+    
+    // 画素書き出し
+    testnum = 8;
+    mod_sel <= 1'b1;
+    command <= 4'b1001;
+    wdata   <= (6'b110011 << 12 ) | (6'b010101 << 6) | (6'b000111);
+    req <= 1'b1;
+    repeat(10) @(posedge clk);
+    req <= 1'b0;
+    wait(ack == 1'b1);
+    repeat(10) @(posedge clk);
+    
+    // 画素書き出し終わり
+    testnum = 9;
+    mod_sel <= 1'b1;
+    command <= 4'b1010;
+    req <= 1'b1;
+    repeat(10) @(posedge clk);
+    req <= 1'b0;
+    
+    repeat(100) @(posedge clk);
 
     #100;
     $finish;
@@ -161,11 +198,13 @@ module sim_spi(
     req_1d <= req;
   end
   wire req_pe = ~req_1d & req;
+  wire is_read_command = (command[3:2] == 2'b01);
+  wire [1:0] readsize = command[1:0];
   always @(negedge oSCL or posedge req) begin
-    if(rsth)                        read_pos = 6'b11_1111;
-    else if(rw & req_pe)            read_pos = readsize * 8 + 8;
-    else if(read_pos == 6'b11_1111) read_pos = -1;
-    else if(oCSX)                   read_pos = read_pos - 1;
+    if(rsth)                          read_pos = 6'b11_1111;
+    else if(is_read_command & req_pe) read_pos = readsize * 8 + 8;
+    else if(read_pos == 6'b11_1111)   read_pos = -1;
+    else if(oCSX)                     read_pos = read_pos - 1;
   end
 
   always @(negedge oSCL) begin

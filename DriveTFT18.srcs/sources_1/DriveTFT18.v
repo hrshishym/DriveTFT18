@@ -11,14 +11,13 @@ module DriveTFT18(
   output wire [6:0] LED
 );
 
-  wire [1:0]  w_mod_sel;
-  wire w_ack;
+  wire [24:0] w_mcs_gpo;
   wire [31:0] w_rdata;
-  wire [1:0]  w_readsize;
-  wire w_req;
-  wire w_dcx;
-  wire w_rw;
-  wire [7:0] w_wdata;
+  wire        w_req           = w_mcs_gpo[24];
+  wire [1:0]  w_mod_sel       = w_mcs_gpo[23:22];
+  wire [3:0]  w_spi_command   = w_mcs_gpo[21:18];
+  wire [17:0] w_wdata         = w_mcs_gpo[17:0];
+
 
   // モジュールセレクトデコード
   // SPI select
@@ -34,7 +33,7 @@ module DriveTFT18(
     .Clk(clk), // input Clk
     .Reset(rsth), // input Reset
     .UART_Tx(UART_TX), // output UART_Tx
-    .GPO1({w_mod_sel, w_req, w_readsize, w_dcx, w_rw, w_wdata[7:0]}), // output [14 : 0] GPO1
+    .GPO1(w_mcs_gpo), // output [26 : 0] GPO1
     .GPI1(w_ack_all), // input [0 : 0] GPI1
     .GPI1_Interrupt(), // output GPI1_Interrupt
     .GPI2(w_rdata), // input [31 : 0] GPI2
@@ -47,10 +46,8 @@ module DriveTFT18(
     .rsth(rsth),
     .mod_sel(w_sel_spi),
     .req(w_req),
-    .rw(w_rw),
-    .dcx(w_dcx),
+    .command(w_spi_command),
     .wdata(w_wdata),
-    .readsize(w_readsize),
     .rdata(w_rdata),
     .ack(w_ack_spi),
     .oSCL(SCL),
